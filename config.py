@@ -11,3 +11,5 @@ WEBAPP_PORT = int(os.getenv("WEBAPP_PORT", 8080))
 WEBHOOK_PATH = os.getenv("WEBHOOK_PATH", "/webhook")
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+
+DATABASE_URL = os.getenv("DATABASE_URL")
