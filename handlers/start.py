@@ -2,7 +2,7 @@ from aiogram import Router, types
 from aiogram.filters import CommandStart
 
 from utils.reply_keyboards import get_reply_keyboard
-from database.database import add_user
+from database import add_user
 
 router = Router()
 
