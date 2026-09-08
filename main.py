@@ -9,6 +9,7 @@ from aiogram.enums import ParseMode
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 
 from handlers.start import router as start_router
+import database as db
 
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(bot=bot)
@@ -17,6 +18,8 @@ dp.include_routers(start_router)
 
 
 async def on_startup(bot: Bot):
+    await db.init_db()
+
     await bot.set_webhook(f"{WEBHOOK_URL}{WEBHOOK_PATH}", secret_token=WEBHOOK_SECRET)
 
 

@@ -16,7 +16,7 @@ async def init_db():
     async with pool.acquire() as connection:
         await connection.execute(
             """
-            CREATE TABLE IF NOT EXISTS users (,
+            CREATE TABLE IF NOT EXISTS users (
                 id BIGINT PRIMARY KEY,
                 username TEXT,
                 full_name TEXT,
