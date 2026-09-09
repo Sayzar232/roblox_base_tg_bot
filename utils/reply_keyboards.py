@@ -1,4 +1,4 @@
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, KeyboardButtonRequestUsers, KeyboardButtonRequestChat
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 def get_reply_keyboard() -> ReplyKeyboardMarkup:
@@ -20,9 +20,34 @@ def get_reply_keyboard() -> ReplyKeyboardMarkup:
 def get_command_id_keyboard() -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
 
-    builder.add(KeyboardButton(text="Выбрать канал"))
-    builder.add(KeyboardButton(text="Выбрать группу"))
-    builder.add(KeyboardButton(text="Выбрать пользователя"))
+    builder.add(
+        KeyboardButton(
+            text="Выбрать пользователя",
+            request_users=KeyboardButtonRequestUsers(
+                request_id=1,
+                user_is_bot=False,
+                max_quantity=1,
+            ),
+        )
+    )
+    builder.add(
+        KeyboardButton(
+            text="Выбрать канал",
+            request_chat=KeyboardButtonRequestChat(
+                request_id=2,
+                chat_is_channel=True,
+            ),
+        )
+    )
+    builder.add(
+        KeyboardButton(
+            text="Выбрать группу",
+            request_chat=KeyboardButtonRequestChat(
+                request_id=3,
+                chat_is_channel=False,
+            ),
+        )
+    )
     builder.add(KeyboardButton(text="Вернуться в меню"))
 
     # Build the keyboard

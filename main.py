@@ -8,13 +8,13 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 
-from handlers import commands_router
+from handlers import commands_router, reply_keyboard_id_router
 import database as db
 
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(bot=bot)
 
-dp.include_routers(commands_router)
+dp.include_routers(commands_router, reply_keyboard_id_router)
 
 
 async def on_startup(bot: Bot):

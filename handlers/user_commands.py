@@ -7,6 +7,12 @@ from utils.reply_keyboards import get_command_id_keyboard, get_reply_keyboard
 router = Router()
 
 
+@router.message(CommandStart())
+async def start_message(message: types.Message):
+    await add_user(message.from_user.id, message.from_user.username, message.from_user.full_name)
+    await message.answer("Hello, this is a simple bot!", reply_markup=get_reply_keyboard())
+
+
 @router.message(Command("me"))
 async def handle_me_command(message: types.Message):
     user_id = message.from_user.id
@@ -44,9 +50,3 @@ async def handle_check_command(message: types.Message):
 @router.message(Command("id"))
 async def handle_check_command(message: types.Message):
     await message.answer(f"Выберите объект для получения ID:", reply_markup=get_command_id_keyboard())
-
-
-@router.message(CommandStart())
-async def start_message(message: types.Message):
-    await add_user(message.from_user.id, message.from_user.username, message.from_user.full_name)
-    await message.answer("Hello, this is a simple bot!", reply_markup=get_reply_keyboard())
