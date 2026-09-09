@@ -15,3 +15,16 @@ def get_reply_keyboard() -> ReplyKeyboardMarkup:
     # Build the keyboard
     builder.adjust(2, 2, 1)
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
+
+
+def get_command_id_keyboard() -> ReplyKeyboardMarkup:
+    builder = ReplyKeyboardBuilder()
+
+    builder.add(KeyboardButton(text="Выбрать канал"))
+    builder.add(KeyboardButton(text="Выбрать группу"))
+    builder.add(KeyboardButton(text="Выбрать пользователя"))
+    builder.add(KeyboardButton(text="Вернуться в меню"))
+
+    # Build the keyboard
+    builder.adjust(3)
+    return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
