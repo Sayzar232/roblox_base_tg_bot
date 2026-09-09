@@ -3,9 +3,9 @@ from config import DATABASE_URL
 
 pool = None
 
-USER_TYPE_USER = "user"
-USER_TYPE_SCAMMER = "scammer"
-USER_TYPE_GARANT = "garant"
+USER_TYPE_USER = "Обычный пользователь"
+USER_TYPE_SCAMMER = "Скаммер"
+USER_TYPE_GARANT = "Гарант"
 
 
 async def init_db():
@@ -71,6 +71,18 @@ async def init_db():
 
 async def get_user_type(user_id: int) -> str:
     async with pool.acquire() as connection:
+        user_data = await connection.fetchrow(
+            """
+            SELECT username, full_name
+            FROM users
+            WHERE id = $1;
+            """,
+            user_id,
+        )
+
+        if user_data is None:
+            return USER_TYPE_USER, "user", "Пользователь"
+
         is_scammer = await connection.fetchval(
             """
             SELECT 1
@@ -81,7 +93,7 @@ async def get_user_type(user_id: int) -> str:
             user_id,
         )
         if is_scammer is not None:
-            return USER_TYPE_SCAMMER
+            return USER_TYPE_SCAMMER, user_data["username"], user_data["full_name"]
 
         is_garant = await connection.fetchval(
             """
@@ -94,9 +106,9 @@ async def get_user_type(user_id: int) -> str:
             user_id,
         )
         if is_garant is not None:
-            return USER_TYPE_GARANT
+            return USER_TYPE_GARANT, user_data["username"], user_data["full_name"]
 
-    return USER_TYPE_USER
+    return USER_TYPE_USER, user_data["username"], user_data["full_name"]
 
 
 async def add_user(user_id: int, username: str, full_name: str):

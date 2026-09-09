@@ -10,7 +10,7 @@ router = Router()
 async def handle_me_command(message: types.Message):
     user_id = message.from_user.id
     username = message.from_user.username
-    user_type = await get_user_type(user_id)
+    user_type, *_ = await get_user_type(user_id)
 
     response_text = (
         f"<b>{user_type}</b>\n\n"
