@@ -59,7 +59,36 @@ def get_post_bot_keyboard():
 
     builder.add(KeyboardButton(text="Избранные"))
     builder.add(KeyboardButton(text="Создать пост"))
-    builder.add(KeyboardButton(text="Избранные"))
+    builder.add(KeyboardButton(text="Назад"))
 
     builder.adjust(2)
     return builder.as_markup()
+
+
+def get_post_creation_keyboard() -> ReplyKeyboardMarkup:
+    builder = ReplyKeyboardBuilder()
+
+    builder.add(KeyboardButton(text="Отменить создание"))
+
+    builder.adjust(1)
+    return builder.as_markup(resize_keyboard=True)
+
+
+def get_post_skip_keyboard() -> ReplyKeyboardMarkup:
+    builder = ReplyKeyboardBuilder()
+
+    builder.add(KeyboardButton(text="Пропустить"))
+    builder.add(KeyboardButton(text="Отменить создание"))
+
+    builder.adjust(1)
+    return builder.as_markup(resize_keyboard=True)
+
+
+def get_post_favorite_keyboard() -> ReplyKeyboardMarkup:
+    builder = ReplyKeyboardBuilder()
+
+    builder.add(KeyboardButton(text="Сохранить в избранные"))
+    builder.add(KeyboardButton(text="Назад"))
+
+    builder.adjust(1)
+    return builder.as_markup(resize_keyboard=True)

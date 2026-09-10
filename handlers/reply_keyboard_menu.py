@@ -11,20 +11,20 @@ async def handle_post_bot(message: types.Message):
 
 
 @router.message(F.text == "Фонд")
-async def handle_post_bot(message: types.Message):
+async def handle_fund(message: types.Message):
     pass
 
 
 @router.message(F.text == "Карточка Базы")
-async def handle_post_bot(message: types.Message):
+async def handle_base_card(message: types.Message):
     pass
 
 
 @router.message(F.text == "Услуги")
-async def handle_post_bot(message: types.Message):
+async def handle_services(message: types.Message):
     pass
 
 
 @router.message(F.text == "Задать вопрос")
-async def handle_post_bot(message: types.Message):
+async def handle_ask_question(message: types.Message):
     pass
