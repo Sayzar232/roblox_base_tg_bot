@@ -1,0 +1,30 @@
+from aiogram import Router, types, F
+
+from utils.reply_keyboards import get_post_bot_keyboard
+
+router = Router()
+
+
+@router.message(F.text == "Пост Бот")
+async def handle_post_bot(message: types.Message):
+    await message.answer("Добро пожаловать в меню Пост Бота", reply_markup=get_post_bot_keyboard())
+
+
+@router.message(F.text == "Фонд")
+async def handle_post_bot(message: types.Message):
+    pass
+
+
+@router.message(F.text == "Карточка Базы")
+async def handle_post_bot(message: types.Message):
+    pass
+
+
+@router.message(F.text == "Услуги")
+async def handle_post_bot(message: types.Message):
+    pass
+
+
+@router.message(F.text == "Задать вопрос")
+async def handle_post_bot(message: types.Message):
+    pass

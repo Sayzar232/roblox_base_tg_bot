@@ -2,7 +2,7 @@ from aiogram import Router, types
 from aiogram.filters import Command, CommandStart
 
 from database.database import get_user_type, add_user
-from utils.reply_keyboards import get_command_id_keyboard, get_reply_keyboard
+from utils.reply_keyboards import get_command_id_keyboard, get_menu_keyboard
 
 router = Router()
 
@@ -10,7 +10,7 @@ router = Router()
 @router.message(CommandStart())
 async def start_message(message: types.Message):
     await add_user(message.from_user.id, message.from_user.username, message.from_user.full_name)
-    await message.answer("Hello, this is a simple bot!", reply_markup=get_reply_keyboard())
+    await message.answer("Hello, this is a simple bot!", reply_markup=get_menu_keyboard())
 
 
 @router.message(Command("me"))

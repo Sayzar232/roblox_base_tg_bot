@@ -1,13 +1,12 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, KeyboardButtonRequestUsers, KeyboardButtonRequestChat
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
-def get_reply_keyboard() -> ReplyKeyboardMarkup:
+def get_menu_keyboard() -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
 
     # Add buttons to the keyboard
     builder.add(KeyboardButton(text="Пост Бот"))
     builder.add(KeyboardButton(text="Фонд"))
-    builder.add(KeyboardButton(text="Раздача"))
     builder.add(KeyboardButton(text="Карточка Базы"))
     builder.add(KeyboardButton(text="Услуги"))
     builder.add(KeyboardButton(text="Задать вопрос"))
@@ -53,3 +52,14 @@ def get_command_id_keyboard() -> ReplyKeyboardMarkup:
     # Build the keyboard
     builder.adjust(3)
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
+
+
+def get_post_bot_keyboard():
+    builder = ReplyKeyboardBuilder()
+
+    builder.add(KeyboardButton(text="Избранные"))
+    builder.add(KeyboardButton(text="Создать пост"))
+    builder.add(KeyboardButton(text="Избранные"))
+
+    builder.adjust(2)
+    return builder.as_markup()

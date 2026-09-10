@@ -1,7 +1,5 @@
 from aiogram import Router, types, F
-
-from database.database import get_user_type
-from utils.reply_keyboards import get_reply_keyboard
+from utils.reply_keyboards import get_menu_keyboard
 
 router = Router()
 
@@ -50,4 +48,4 @@ async def handle_chat_shared(message: types.Message):
 
 @router.message(F.text == "Вернуться в меню")
 async def handle_back_to_menu(message: types.Message):
-    await message.answer("Возвращаемся в меню 👇", reply_markup=get_reply_keyboard())
+    await message.answer("Возвращаемся в меню 👇", reply_markup=get_menu_keyboard())
