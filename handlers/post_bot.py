@@ -1,17 +1,16 @@
 from aiogram import Router, types, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import InlineKeyboardButton
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from database.database import create_post, get_favorite_posts, set_post_favorite, POST_COLORS
-from utils.reply_keyboards import (
+from utils import (
     get_menu_keyboard,
     get_post_bot_keyboard,
     get_post_creation_keyboard,
     get_post_skip_keyboard,
     get_post_favorite_keyboard,
+    get_post_keyboard,
+    PostStates
 )
 
 router = Router()
@@ -26,12 +25,6 @@ BUTTONS_HINT = (
     "Пример:\n"
     "<code>Поддержка + https://example.com + primary</code>"
 )
-
-
-class PostStates(StatesGroup):
-    waiting_for_text = State()
-    waiting_for_photo = State()
-    waiting_for_buttons = State()
 
 
 def parse_post_buttons(raw_text: str) -> list:
@@ -62,21 +55,12 @@ async def send_post_preview(message: types.Message, data: dict):
     photo_file_id = data.get("photo_file_id")
     buttons = data.get("buttons") or []
 
-    builder = InlineKeyboardBuilder()
-
-    for button in buttons:
-        builder.add(InlineKeyboardButton(text=button["text"], url=button["url"]))
-    builder.adjust(1)
-
-    builder.row(
-        InlineKeyboardButton(text="❌ Отменить создание", callback_data=CALLBACK_POST_CANCEL),
-        InlineKeyboardButton(text="💾 Сохранить", callback_data=CALLBACK_POST_SAVE),
-    )
+    kb = get_post_keyboard(buttons)
 
     if photo_file_id is not None:
-        await message.answer_photo(photo=photo_file_id, caption=post_text, reply_markup=builder.as_markup())
+        await message.answer_photo(photo=photo_file_id, caption=post_text, reply_markup=kb)
     else:
-        await message.answer(post_text, reply_markup=builder.as_markup())
+        await message.answer(post_text, reply_markup=kb)
 
 
 @router.message(F.text == "Назад")

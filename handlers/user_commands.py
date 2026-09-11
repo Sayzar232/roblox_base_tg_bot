@@ -2,7 +2,7 @@ from aiogram import Router, types
 from aiogram.filters import Command, CommandStart
 
 from database.database import get_user_type, add_user
-from utils.reply_keyboards import get_command_id_keyboard, get_menu_keyboard
+from utils import get_command_id_keyboard, get_menu_keyboard
 
 router = Router()
 

@@ -1,6 +1,6 @@
 from aiogram import Router, types, F
 
-from utils.reply_keyboards import get_post_bot_keyboard
+from utils import get_post_bot_keyboard
 
 router = Router()
 
