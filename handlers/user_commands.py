@@ -6,11 +6,25 @@ from utils.reply_keyboards import get_command_id_keyboard, get_menu_keyboard
 
 router = Router()
 
+start_text = """
+<b>🖐 Добро пожаловать в базу гарантов по Roblox!</b>
+
+Это бот, в котором игроки Roblox могут узнать является ли <b>гарант мошенником</b>, а также пожаловаться на него, чтобы другие не попались на него
+
+<b>🤖 Что умеет этот бот:</b>
+
+• ❌ проверять репутацию пользователей в сфере, что бы уменьшить шанс скама
+• 📝 делать посты через пост-бота
+• 🔍 Найти себе верного гаранта
+
+<b>Нажимай на кнопки в меню и начинай 👇</b>
+"""
+
 
 @router.message(CommandStart())
 async def start_message(message: types.Message):
     await add_user(message.from_user.id, message.from_user.username, message.from_user.full_name)
-    await message.answer("Hello, this is a simple bot!", reply_markup=get_menu_keyboard())
+    await message.answer(start_text, reply_markup=get_menu_keyboard())
 
 
 @router.message(Command("me"))
@@ -40,8 +54,8 @@ async def handle_check_command(message: types.Message):
 
     response_text = (
         f"<b>{user_type}</b>\n\n"
-        f"ID: {user_id}\n"
-        f"Пользователь: @{username}\n"
+        f"<b>ID:</b> <code>{user_id}</code>\n"
+        f"<b>Пользователь:</b> @{username}\n"
     )
     
     await message.answer(response_text)
@@ -49,4 +63,4 @@ async def handle_check_command(message: types.Message):
 
 @router.message(Command("id"))
 async def handle_check_command(message: types.Message):
-    await message.answer(f"Выберите объект для получения ID:", reply_markup=get_command_id_keyboard())
+    await message.answer(f"<b>Выберите объект для получения ID 👇:</b>", reply_markup=get_command_id_keyboard())

@@ -21,7 +21,7 @@ dp.include_routers(commands_router, reply_keyboard_menu_router, post_bot_router,
 async def on_startup(bot: Bot):
     await db.init_db()
 
-    await bot.set_webhook(f"{WEBHOOK_URL}{WEBHOOK_PATH}", secret_token=WEBHOOK_SECRET)
+    await bot.set_webhook(f"{WEBHOOK_URL}{WEBHOOK_PATH}", secret_token=WEBHOOK_SECRET, allowed_updates=["message", "callback_query"])
 
 
 async def main():
