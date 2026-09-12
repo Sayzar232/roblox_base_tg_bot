@@ -4,3 +4,6 @@ class PostStates(StatesGroup):
     waiting_for_text = State()
     waiting_for_photo = State()
     waiting_for_buttons = State()
+
+class MenuStates(StatesGroup):
+    waiting_for_id = State()

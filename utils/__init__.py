@@ -4,4 +4,4 @@ from .inline_keyboards import (
     get_menu_keyboard,
     get_command_id_keyboard
 )
-from .states import PostStates
+from .states import PostStates, MenuStates
