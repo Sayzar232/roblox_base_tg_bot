@@ -37,18 +37,6 @@ async def init_db():
 
         await connection.execute(
             """
-            CREATE TABLE IF NOT EXISTS user_ranks (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                rank_name TEXT,
-                purchased_at TIMESTAMP DEFAULT NOW(),
-                expires_at TIMESTAMP
-            );
-            """
-        )
-
-        await connection.execute(
-            """
             CREATE TABLE IF NOT EXISTS user_garants (
                 id SERIAL PRIMARY KEY,
                 user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

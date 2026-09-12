@@ -9,13 +9,13 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 
-from handlers import commands_router, reply_keyboard_menu_router, post_bot_router, reply_keyboard_id_router
+from handlers import commands_router, reply_keyboard_id_router
 import database as db
 
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(bot=bot, storage=MemoryStorage())
 
-dp.include_routers(commands_router, reply_keyboard_menu_router, post_bot_router, reply_keyboard_id_router)
+dp.include_routers(commands_router, reply_keyboard_id_router)
 
 
 async def on_startup(bot: Bot):

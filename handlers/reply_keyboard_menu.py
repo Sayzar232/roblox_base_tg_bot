@@ -1,6 +1,6 @@
 from aiogram import Router, types, F
 
-from utils import get_post_bot_keyboard
+from utils import get_post_bot_keyboard, get_service_keyboard
 
 router = Router()
 
@@ -22,7 +22,7 @@ async def handle_base_card(message: types.Message):
 
 @router.message(F.text == "Услуги")
 async def handle_services(message: types.Message):
-    pass
+    await message.answer("<b>🛍 Выберите категорию услуг:</b>", reply_markup=get_service_keyboard())
 
 
 @router.message(F.text == "Задать вопрос")

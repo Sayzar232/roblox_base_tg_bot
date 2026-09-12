@@ -5,17 +5,15 @@ def get_menu_keyboard() -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
 
     # Add buttons to the keyboard
-    builder.add(KeyboardButton(text="Пост Бот"))
-    builder.add(KeyboardButton(text="Фонд"))
     builder.add(KeyboardButton(text="Карточка Базы"))
     builder.add(KeyboardButton(text="Услуги"))
-    builder.add(KeyboardButton(text="Задать вопрос"))
 
     # Build the keyboard
     builder.adjust(2, 2, 1)
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
 
 
+# Command Keyboards
 def get_command_id_keyboard() -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
 
@@ -54,6 +52,7 @@ def get_command_id_keyboard() -> ReplyKeyboardMarkup:
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
 
 
+# Post Bot keyboards
 def get_post_bot_keyboard():
     builder = ReplyKeyboardBuilder()
 
