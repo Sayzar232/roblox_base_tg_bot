@@ -3,15 +3,15 @@ import json
 import random
 import string
 
-from config import DATABASE_URL
+from config import (
+    DATABASE_URL,
+    USER_TYPE_USER,
+    USER_TYPE_SCAMMER,
+    USER_TYPE_GARANT,
+    POST_COLORS
+)
 
 pool = None
-
-USER_TYPE_USER = "Обычный пользователь"
-USER_TYPE_SCAMMER = "Скаммер"
-USER_TYPE_GARANT = "Гарант"
-
-POST_COLORS = ("danger", "success", "primary")
 
 
 async def init_db():

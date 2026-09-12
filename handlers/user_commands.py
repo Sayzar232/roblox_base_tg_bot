@@ -1,8 +1,18 @@
 from aiogram import Router, types
 from aiogram.filters import Command, CommandStart
+from aiogram.types import FSInputFile
 
 from database.database import get_user_type, add_user
 from utils import get_command_id_keyboard, get_menu_keyboard
+from config import (
+    GARANT_PHOTO_PATH,
+    TRUSTED_GARANT_PHOTO_PATH,
+    SCAM_PHOTO_PATH,
+    USER_PHOTO_PATH,
+    USER_TYPE_USER,
+    USER_TYPE_GARANT,
+    USER_TYPE_SCAMMER
+)
 
 router = Router()
 
@@ -21,6 +31,29 @@ start_text = """
 """
 
 
+def get_path_by_type(user_type: str):
+    if user_type == USER_TYPE_USER:
+        return USER_PHOTO_PATH
+    elif user_type == USER_TYPE_GARANT:
+        return GARANT_PHOTO_PATH
+    elif user_type == USER_TYPE_SCAMMER:
+        return SCAM_PHOTO_PATH
+
+    return USER_PHOTO_PATH
+
+
+async def send_user_type_message(message: types.Message, user_id, username, user_type):
+    response_text = (
+        f"🔷 <b>{user_type}</b> 🔷\n\n"
+        f"ℹ <b>ID:</b> <code>{user_id}</code>\n"
+        f"👤 <b>Пользователь:</b> @{username}"
+    )
+
+    image_path = get_path_by_type(user_type)
+
+    await message.answer_photo(FSInputFile(image_path), caption=response_text)
+
+
 @router.message(CommandStart())
 async def start_message(message: types.Message):
     await add_user(message.from_user.id, message.from_user.username, message.from_user.full_name)
@@ -33,13 +66,7 @@ async def handle_me_command(message: types.Message):
     username = message.from_user.username
     user_type, *_ = await get_user_type(user_id)
 
-    response_text = (
-        f"<b>{user_type}</b>\n\n"
-        f"ID: {user_id}\n"
-        f"Пользователь: @{username}"
-    )
-
-    await message.answer(response_text)
+    await send_user_type_message(message, user_id, username, user_type)
 
 
 @router.message(Command("check"))
@@ -50,17 +77,11 @@ async def handle_check_command(message: types.Message):
         await message.answer("Пожалуйста, введите id пользователя после команды.")
         return
 
-    user_type, username, full_name = await get_user_type(int(user_id))
+    user_type, username, *_ = await get_user_type(int(user_id))
 
-    response_text = (
-        f"<b>{user_type}</b>\n\n"
-        f"<b>ID:</b> <code>{user_id}</code>\n"
-        f"<b>Пользователь:</b> @{username}\n"
-    )
-    
-    await message.answer(response_text)
+    await send_user_type_message(message, user_id, username, user_type)
 
 
 @router.message(Command("id"))
-async def handle_check_command(message: types.Message):
+async def handle_get_id(message: types.Message):
     await message.answer(f"<b>Выберите объект для получения ID 👇:</b>", reply_markup=get_command_id_keyboard())

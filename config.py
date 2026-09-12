@@ -13,3 +13,16 @@ WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Image paths
+GARANT_PHOTO_PATH = "images/garant.jpg"
+TRUSTED_GARANT_PHOTO_PATH = "images/trusted_garant.jpg"
+SCAM_PHOTO_PATH = "images/scam.jpg"
+USER_PHOTO_PATH = "images/user.jpg"
+
+# User types
+USER_TYPE_USER = "Обычный пользователь"
+USER_TYPE_SCAMMER = "Скаммер"
+USER_TYPE_GARANT = "Гарант"
+
+POST_COLORS = ("danger", "success", "primary")
