@@ -137,6 +137,63 @@ async def get_user_type(user_id: int) -> str:
     return USER_TYPE_USER, user_data["username"], user_data["full_name"]
 
 
+async def get_user_info(user_id: int):
+    """Возвращает информацию о пользователе из дополнительной таблицы.
+
+    Если пользователь скаммер — возвращает данные из user_scammers,
+    если гарант (и гарантство ещё действительно) — из user_garants.
+    Если пользователь не найден или является обычным пользователем — возвращает None.
+    """
+    async with pool.acquire() as connection:
+        scammer = await connection.fetchrow(
+            """
+            SELECT u.username, u.full_name, s.reason, s.proofs, s.created_at
+            FROM user_scammers s
+            JOIN users u ON u.id = s.user_id
+            WHERE s.user_id = $1
+            ORDER BY s.created_at DESC
+            LIMIT 1;
+            """,
+            user_id,
+        )
+        if scammer is not None:
+            return {
+                "user_type": USER_TYPE_SCAMMER,
+                "username": scammer["username"],
+                "full_name": scammer["full_name"],
+                "reason": scammer["reason"],
+                "proofs": scammer["proofs"],
+                "created_at": scammer["created_at"],
+            }
+
+        garant = await connection.fetchrow(
+            """
+            SELECT u.username, u.full_name, g.garant_name, g.roblox_username,
+                   g.proofs, g.proofs_num, g.purchased_at, g.expires_at
+            FROM user_garants g
+            JOIN users u ON u.id = g.user_id
+            WHERE g.user_id = $1
+              AND (g.expires_at IS NULL OR g.expires_at > NOW())
+            ORDER BY g.purchased_at DESC
+            LIMIT 1;
+            """,
+            user_id,
+        )
+        if garant is not None:
+            return {
+                "user_type": garant["garant_name"] or USER_TYPE_GARANT,
+                "username": garant["username"],
+                "full_name": garant["full_name"],
+                "roblox_username": garant["roblox_username"],
+                "proofs": garant["proofs"],
+                "proofs_num": garant["proofs_num"],
+                "purchased_at": garant["purchased_at"],
+                "expires_at": garant["expires_at"],
+            }
+
+    return None
+
+
 async def add_user(user_id: int, username: str, full_name: str):
     async with pool.acquire() as connection:
         await connection.execute(
@@ -224,6 +281,8 @@ async def set_post_favorite(post_id: str, is_favorite: bool = True):
             post_id,
             is_favorite,
         )
+
+
 async def set_post_favorite(post_id: str, is_favorite: bool = True):
     async with pool.acquire() as connection:
         await connection.execute(

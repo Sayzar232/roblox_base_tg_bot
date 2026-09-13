@@ -2,7 +2,7 @@ from aiogram import Router, types
 from aiogram.filters import Command, CommandStart
 from aiogram.types import FSInputFile
 
-from database import get_user_type, get_user_id_by_username, add_user
+from database import get_user_type, get_user_info, get_user_id_by_username, add_user
 from utils import get_command_id_keyboard, get_menu_keyboard
 from config import (
     GARANT_PHOTO_PATH,
@@ -58,6 +58,26 @@ async def send_user_type_message(message: types.Message, user_id, username, user
             f"ℹ <b>ID:</b> <code>{user_id}</code>\n"
             f"❗ Внимание, информации о данном пользователе нет в базе данных, будьте осторожны, если он предлагает вам услуги"
         )
+    elif user_type in (USER_TYPE_SCAMMER, USER_TYPE_GARANT, USER_TYPE_TRUSTED_GARANT):
+        user_info = await get_user_info(user_id)
+
+        if user_info is not None:
+            if user_type == USER_TYPE_SCAMMER:
+                response_text += (
+                    f"\n\n⚠️ <b>Причина скама:</b> {user_info['reason']}\n"
+                    f"🔗 <b>Пруфы:</b> {user_info['proofs']}"
+                )
+            else:
+                expires_at = user_info["expires_at"]
+                expires_text = expires_at.strftime("%d.%m.%Y %H:%M") if expires_at else "Бессрочно"
+
+                response_text += (
+                    f"\n\n🛡 <b>Roblox ник:</b> {user_info['roblox_username']}\n"
+                    f"🔗 <b>Пруфы:</b> {user_info['proofs']}"
+                )
+
+                if user_info["proofs_num"] is not None:
+                    response_text += f"\n📄 <b>Количество пруфов:</b> {user_info['proofs_num']}"
 
     image_path = get_path_by_type(user_type)
 

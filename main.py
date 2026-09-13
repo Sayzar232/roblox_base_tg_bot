@@ -15,7 +15,7 @@ import database as db
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(bot=bot, storage=MemoryStorage())
 
-dp.include_routers(commands_router, reply_keyboard_id_router, menu_router, admin_router)
+dp.include_routers(commands_router, admin_router, reply_keyboard_id_router, menu_router)
 
 
 async def on_startup(bot: Bot):
