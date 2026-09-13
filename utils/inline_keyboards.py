@@ -42,4 +42,27 @@ def get_menu_keyboard():
 
     # Build the keyboard
     builder.adjust(1)
-    return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
+    return builder.as_markup()
+
+
+def get_admin_role_keyboard():
+    builder = InlineKeyboardBuilder()
+
+    builder.add(InlineKeyboardButton(text="✅ Выдать гаранта", callback_data="admin:role:garant"))
+    builder.add(InlineKeyboardButton(text="💎 Выдать проверенного гаранта", callback_data="admin:role:trusted_garant"))
+    builder.add(InlineKeyboardButton(text="❌ Выдать скаммера", callback_data="admin:role:scammer"))
+    builder.add(InlineKeyboardButton(text="🔙 Отмена", callback_data="admin:role:cancel"))
+
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_admin_keyboard():
+    builder = InlineKeyboardBuilder()
+
+    builder.add(InlineKeyboardButton(text="Статистика бота", callback_data="admin_stats"))
+    builder.add(InlineKeyboardButton(text="Выдать гаранта/скаммера", callback_data="admin_give_garant"))
+    builder.add(InlineKeyboardButton(text="Сделать рассылку", callback_data="admin_broadcast"))
+
+    builder.adjust(1)
+    return builder.as_markup()

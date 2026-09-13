@@ -121,9 +121,9 @@ async def get_user_type(user_id: int) -> str:
         if is_scammer is not None:
             return USER_TYPE_SCAMMER, user_data["username"], user_data["full_name"]
 
-        is_garant = await connection.fetchval(
+        garant_name = await connection.fetchval(
             """
-            SELECT 1
+            SELECT garant_name
             FROM user_garants
             WHERE user_id = $1
               AND (expires_at IS NULL OR expires_at > NOW())
@@ -131,8 +131,8 @@ async def get_user_type(user_id: int) -> str:
             """,
             user_id,
         )
-        if is_garant is not None:
-            return USER_TYPE_GARANT, user_data["username"], user_data["full_name"]
+        if garant_name is not None:
+            return garant_name, user_data["username"], user_data["full_name"]
 
     return USER_TYPE_USER, user_data["username"], user_data["full_name"]
 
@@ -223,4 +223,80 @@ async def set_post_favorite(post_id: str, is_favorite: bool = True):
             """,
             post_id,
             is_favorite,
+        )
+async def set_post_favorite(post_id: str, is_favorite: bool = True):
+    async with pool.acquire() as connection:
+        await connection.execute(
+            """
+            UPDATE posts
+            SET is_favorite = $2
+            WHERE id = $1;
+            """,
+            post_id,
+            is_favorite,
+        )
+
+
+async def get_admin_stats() -> dict:
+    """Собирает статистику бота для админ панели."""
+    async with pool.acquire() as connection:
+        users = await connection.fetchval("SELECT COUNT(*) FROM users;")
+        users_today = await connection.fetchval(
+            """
+            SELECT COUNT(*)
+            FROM users
+            WHERE created_at >= CURRENT_DATE;
+            """
+        )
+        garants = await connection.fetchval(
+            """
+            SELECT COUNT(DISTINCT user_id)
+            FROM user_garants
+            WHERE expires_at IS NULL OR expires_at > NOW();
+            """
+        )
+        scammers = await connection.fetchval(
+            """
+            SELECT COUNT(DISTINCT user_id)
+            FROM user_scammers;
+            """
+        )
+        posts = await connection.fetchval("SELECT COUNT(*) FROM posts;")
+
+    return {
+        "users": users or 0,
+        "users_today": users_today or 0,
+        "garants": garants or 0,
+        "scammers": scammers or 0,
+        "posts": posts or 0,
+    }
+
+
+async def add_user_garant(user_id: int, garant_name: str = None, roblox_username: str = None, proofs: str = None, proofs_num: str = None):
+    """Выдаёт пользователю звание гаранта (бессрочно)."""
+    async with pool.acquire() as connection:
+        await connection.execute(
+            """
+            INSERT INTO user_garants (user_id, garant_name, roblox_username, proofs, proofs_num)
+            VALUES ($1, $2, $3, $4, $5);
+            """,
+            user_id,
+            garant_name,
+            roblox_username,
+            proofs,
+            proofs_num,
+        )
+
+
+async def add_user_scammer(user_id: int, reason: str, proofs: str = "Нет информации"):
+    """Добавляет пользователя в скаммеры."""
+    async with pool.acquire() as connection:
+        await connection.execute(
+            """
+            INSERT INTO user_scammers (user_id, reason, proofs)
+            VALUES ($1, $2, $3);
+            """,
+            user_id,
+            reason,
+            proofs,
         )

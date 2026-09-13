@@ -4,6 +4,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Load environment variables from .env file
+admins_ids_str = os.getenv("ADMINS_IDS")
+if admins_ids_str is not None:
+    admins_ids_str = map(int, admins_ids_str.split(","))
+
+ADMINS_IDS = list(admins_ids_str)
+
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 WEBAPP_HOST = os.getenv("WEBAPP_HOST", "0.0.0.0")
