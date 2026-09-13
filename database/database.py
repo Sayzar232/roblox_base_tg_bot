@@ -331,19 +331,31 @@ async def get_admin_stats() -> dict:
     }
 
 
-async def add_user_garant(user_id: int, garant_name: str = None, roblox_username: str = None, proofs: str = None, proofs_num: str = None):
-    """Выдаёт пользователю звание гаранта (бессрочно)."""
+async def add_user_garant(
+    user_id: int,
+    garant_name: str = None,
+    roblox_username: str = None,
+    proofs: str = None,
+    proofs_num: str = None,
+    duration_days: int = None,
+):
+    """Выдаёт пользователю звание гаранта.
+
+    duration_days = None — бессрочно, иначе гарантство истечёт через указанное количество дней.
+    """
     async with pool.acquire() as connection:
         await connection.execute(
             """
-            INSERT INTO user_garants (user_id, garant_name, roblox_username, proofs, proofs_num)
-            VALUES ($1, $2, $3, $4, $5);
+            INSERT INTO user_garants (user_id, garant_name, roblox_username, proofs, proofs_num, expires_at)
+            VALUES ($1, $2, $3, $4, $5,
+                    CASE WHEN $6::int IS NULL THEN NULL ELSE NOW() + make_interval(days => $6::int) END);
             """,
             user_id,
             garant_name,
             roblox_username,
             proofs,
             proofs_num,
+            duration_days,
         )
 
 

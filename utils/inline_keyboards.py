@@ -57,6 +57,17 @@ def get_admin_role_keyboard():
     return builder.as_markup()
 
 
+def get_admin_duration_keyboard():
+    builder = InlineKeyboardBuilder()
+
+    builder.add(InlineKeyboardButton(text="♾ Навсегда", callback_data="admin:duration:forever"))
+    builder.add(InlineKeyboardButton(text="📅 На месяц", callback_data="admin:duration:month"))
+    builder.add(InlineKeyboardButton(text="🔙 Отмена", callback_data="admin:role:cancel"))
+
+    builder.adjust(1)
+    return builder.as_markup()
+
+
 def get_admin_keyboard():
     builder = InlineKeyboardBuilder()
 

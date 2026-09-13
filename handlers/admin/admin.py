@@ -5,7 +5,12 @@ from aiogram.types import CallbackQuery
 
 from config import ADMINS_IDS, USER_TYPE_GARANT, USER_TYPE_TRUSTED_GARANT
 from database import get_admin_stats, get_user_id_by_username, add_user_garant, add_user_scammer
-from utils import get_admin_keyboard, get_admin_role_keyboard, AdminStates
+from utils import get_admin_keyboard, get_admin_role_keyboard, get_admin_duration_keyboard, AdminStates
+
+GARANT_ROLE_NAMES = {
+    "garant": USER_TYPE_GARANT,
+    "trusted_garant": USER_TYPE_TRUSTED_GARANT,
+}
 
 router = Router()
 
@@ -95,14 +100,12 @@ async def handle_admin_role_garant(callback: CallbackQuery, state: FSMContext):
     if callback.from_user.id not in ADMINS_IDS:
         return
 
-    data = await state.get_data()
-    user_id = data.get("target_user_id")
-
-    await add_user_garant(user_id, USER_TYPE_GARANT)
-    await state.clear()
-
-    await callback.message.edit_text(f"✅ Пользователь <code>{user_id}</code> получил звание <b>Гаранта</b> 💎")
-    await callback.answer("Звание выдано")
+    await state.update_data(garant_role="garant")
+    await state.set_state(AdminStates.waiting_for_roblox_username)
+    await callback.message.edit_text(
+        "🎮 Введите <b>никнейм пользователя в Roblox</b>, которого выдаём гарантом:"
+    )
+    await callback.answer()
 
 
 @router.callback_query(AdminStates.waiting_for_role, F.data == "admin:role:trusted_garant")
@@ -110,13 +113,101 @@ async def handle_admin_role_trusted_garant(callback: CallbackQuery, state: FSMCo
     if callback.from_user.id not in ADMINS_IDS:
         return
 
+    await state.update_data(garant_role="trusted_garant")
+    await state.set_state(AdminStates.waiting_for_roblox_username)
+    await callback.message.edit_text(
+        "🎮 Введите <b>никнейм пользователя в Roblox</b>, которого выдаём проверенным гарантом:"
+    )
+    await callback.answer()
+
+
+@router.message(AdminStates.waiting_for_roblox_username)
+async def handle_admin_garant_roblox_username(message: types.Message, state: FSMContext):
+    if message.from_user.id not in ADMINS_IDS:
+        await state.clear()
+        return
+
+    roblox_username = message.text.strip()
+
+    await state.update_data(roblox_username=roblox_username)
+    await state.set_state(AdminStates.waiting_for_proofs)
+
+    await message.answer("🔗 Отправьте <b>пруфы</b> (ссылка на канал/чат):")
+
+
+@router.message(AdminStates.waiting_for_proofs)
+async def handle_admin_garant_proofs(message: types.Message, state: FSMContext):
+    if message.from_user.id not in ADMINS_IDS:
+        await state.clear()
+        return
+
+    proofs = message.text.strip()
+
+    await state.update_data(proofs=proofs)
+    await state.set_state(AdminStates.waiting_for_proofs_num)
+
+    await message.answer("🔢 Введите <b>количество пруфов</b>:")
+
+
+@router.message(AdminStates.waiting_for_proofs_num)
+async def handle_admin_garant_proofs_num(message: types.Message, state: FSMContext):
+    if message.from_user.id not in ADMINS_IDS:
+        await state.clear()
+        return
+
+    proofs_num = message.text.strip()
+
+    if not proofs_num.isdigit():
+        await message.answer("❗ Количество пруфов должно быть целым числом. Попробуйте ещё раз:")
+        return
+
+    await state.update_data(proofs_num=proofs_num)
+    await state.set_state(AdminStates.waiting_for_duration)
+
     data = await state.get_data()
     user_id = data.get("target_user_id")
+    garant_role = data.get("garant_role")
+    role_name = GARANT_ROLE_NAMES.get(garant_role, USER_TYPE_GARANT)
 
-    await add_user_garant(user_id, USER_TYPE_TRUSTED_GARANT)
+    await message.answer(
+        f"👤 <b>Пользователь:</b> <code>{user_id}</code>\n"
+        f"💎 <b>Звание:</b> {role_name}\n"
+        f"🎮 <b>Roblox ник:</b> {data.get('roblox_username')}\n"
+        f"🔗 <b>Пруфы:</b> {data.get('proofs')}\n"
+        f"🔢 <b>Кол-во пруфов:</b> {proofs_num}\n\n"
+        "⏳ Выберите, на какой срок выдать гаранта:",
+        reply_markup=get_admin_duration_keyboard(),
+    )
+
+
+@router.callback_query(AdminStates.waiting_for_duration, F.data.in_({"admin:duration:forever", "admin:duration:month"}))
+async def handle_admin_garant_duration(callback: CallbackQuery, state: FSMContext):
+    if callback.from_user.id not in ADMINS_IDS:
+        return
+
+    duration = callback.data.split(":")[-1]
+    duration_days = None if duration == "forever" else 30
+
+    data = await state.get_data()
+    user_id = data.get("target_user_id")
+    garant_role = data.get("garant_role", "garant")
+    garant_name = GARANT_ROLE_NAMES.get(garant_role, USER_TYPE_GARANT)
+
+    await add_user_garant(
+        user_id,
+        garant_name=garant_name,
+        roblox_username=data.get("roblox_username"),
+        proofs=data.get("proofs"),
+        proofs_num=data.get("proofs_num"),
+        duration_days=duration_days,
+    )
     await state.clear()
 
-    await callback.message.edit_text(f"✅ Пользователь <code>{user_id}</code> получил звание <b>Проверенного Гаранта</b> 💎")
+    duration_text = "♾ <b>навсегда</b>" if duration_days is None else "📅 <b>на месяц</b>"
+    await callback.message.edit_text(
+        f"✅ Пользователь <code>{user_id}</code> получил звание <b>{garant_name}</b> 💎\n"
+        f"⏳ Срок: {duration_text}"
+    )
     await callback.answer("Звание выдано")
 
 
@@ -146,7 +237,7 @@ async def handle_admin_scammer_reason(message: types.Message, state: FSMContext)
     await message.answer(f"✅ Пользователь <code>{user_id}</code> получил звание <b>Скаммер</b> ❌")
 
 
-@router.callback_query(AdminStates.waiting_for_role, F.data == "admin:role:cancel")
+@router.callback_query(F.data == "admin:role:cancel")
 async def handle_admin_role_cancel(callback: CallbackQuery, state: FSMContext):
     if callback.from_user.id not in ADMINS_IDS:
         return

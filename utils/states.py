@@ -12,3 +12,7 @@ class AdminStates(StatesGroup):
     waiting_for_user = State()
     waiting_for_role = State()
     waiting_for_reason = State()
+    waiting_for_roblox_username = State()
+    waiting_for_proofs = State()
+    waiting_for_proofs_num = State()
+    waiting_for_duration = State()
