@@ -68,6 +68,16 @@ def get_admin_duration_keyboard():
     return builder.as_markup()
 
 
+def get_admin_skip_keyboard():
+    builder = InlineKeyboardBuilder()
+
+    builder.add(InlineKeyboardButton(text="⏭ Пропустить", callback_data="admin:skip"))
+    builder.add(InlineKeyboardButton(text="🔙 Отмена", callback_data="admin:role:cancel"))
+
+    builder.adjust(2)
+    return builder.as_markup()
+
+
 def get_admin_keyboard():
     builder = InlineKeyboardBuilder()
 

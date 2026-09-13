@@ -5,12 +5,14 @@ from aiogram.types import CallbackQuery
 
 from config import ADMINS_IDS, USER_TYPE_GARANT, USER_TYPE_TRUSTED_GARANT
 from database import get_admin_stats, get_user_id_by_username, add_user_garant, add_user_scammer
-from utils import get_admin_keyboard, get_admin_role_keyboard, get_admin_duration_keyboard, AdminStates
+from utils import get_admin_keyboard, get_admin_role_keyboard, get_admin_duration_keyboard, get_admin_skip_keyboard, AdminStates
 
 GARANT_ROLE_NAMES = {
     "garant": USER_TYPE_GARANT,
     "trusted_garant": USER_TYPE_TRUSTED_GARANT,
 }
+
+NO_INFO_PLACEHOLDER = "Нет информации"
 
 router = Router()
 
@@ -103,7 +105,8 @@ async def handle_admin_role_garant(callback: CallbackQuery, state: FSMContext):
     await state.update_data(garant_role="garant")
     await state.set_state(AdminStates.waiting_for_roblox_username)
     await callback.message.edit_text(
-        "🎮 Введите <b>никнейм пользователя в Roblox</b>, которого выдаём гарантом:"
+        "🎮 Введите <b>никнейм пользователя в Roblox</b>, которого выдаём гарантом:",
+        reply_markup=get_admin_skip_keyboard(),
     )
     await callback.answer()
 
@@ -116,9 +119,22 @@ async def handle_admin_role_trusted_garant(callback: CallbackQuery, state: FSMCo
     await state.update_data(garant_role="trusted_garant")
     await state.set_state(AdminStates.waiting_for_roblox_username)
     await callback.message.edit_text(
-        "🎮 Введите <b>никнейм пользователя в Roblox</b>, которого выдаём проверенным гарантом:"
+        "🎮 Введите <b>никнейм пользователя в Roblox</b>, которого выдаём проверенным гарантом:",
+        reply_markup=get_admin_skip_keyboard(),
     )
     await callback.answer()
+
+
+@router.callback_query(AdminStates.waiting_for_roblox_username, F.data == "admin:skip")
+async def handle_admin_garant_skip_roblox_username(callback: CallbackQuery, state: FSMContext):
+    if callback.from_user.id not in ADMINS_IDS:
+        return
+
+    await state.update_data(roblox_username=NO_INFO_PLACEHOLDER)
+    await state.set_state(AdminStates.waiting_for_proofs)
+
+    await callback.message.edit_text("🔗 Отправьте <b>пруфы</b> (ссылки/описание доказательств):")
+    await callback.answer("Пропущено")
 
 
 @router.message(AdminStates.waiting_for_roblox_username)
@@ -146,7 +162,35 @@ async def handle_admin_garant_proofs(message: types.Message, state: FSMContext):
     await state.update_data(proofs=proofs)
     await state.set_state(AdminStates.waiting_for_proofs_num)
 
-    await message.answer("🔢 Введите <b>количество пруфов</b>:")
+    await message.answer(
+        "🔢 Введите <b>количество пруфов</b>:",
+        reply_markup=get_admin_skip_keyboard(),
+    )
+
+
+@router.callback_query(AdminStates.waiting_for_proofs_num, F.data == "admin:skip")
+async def handle_admin_garant_skip_proofs_num(callback: CallbackQuery, state: FSMContext):
+    if callback.from_user.id not in ADMINS_IDS:
+        return
+
+    await state.update_data(proofs_num=None)
+    await state.set_state(AdminStates.waiting_for_duration)
+
+    data = await state.get_data()
+    user_id = data.get("target_user_id")
+    garant_role = data.get("garant_role")
+    role_name = GARANT_ROLE_NAMES.get(garant_role, USER_TYPE_GARANT)
+
+    await callback.message.edit_text(
+        f"👤 <b>Пользователь:</b> <code>{user_id}</code>\n"
+        f"💎 <b>Звание:</b> {role_name}\n"
+        f"🎮 <b>Roblox ник:</b> {data.get('roblox_username')}\n"
+        f"🔗 <b>Пруфы:</b> {data.get('proofs')}\n"
+        f"🔢 <b>Кол-во пруфов:</b> {NO_INFO_PLACEHOLDER}\n\n"
+        "⏳ Выберите, на какой срок выдать гаранта:",
+        reply_markup=get_admin_duration_keyboard(),
+    )
+    await callback.answer("Пропущено")
 
 
 @router.message(AdminStates.waiting_for_proofs_num)
