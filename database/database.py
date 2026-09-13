@@ -8,6 +8,7 @@ from config import (
     USER_TYPE_USER,
     USER_TYPE_SCAMMER,
     USER_TYPE_GARANT,
+    USER_TYPE_TRUSTED_GARANT,
     POST_COLORS
 )
 
@@ -89,7 +90,7 @@ async def get_user_type(user_id: int) -> str:
         )
 
         if user_data is None:
-            return USER_TYPE_USER, "user", "Пользователь"
+            return USER_TYPE_USER, None, None
 
         is_scammer = await connection.fetchval(
             """

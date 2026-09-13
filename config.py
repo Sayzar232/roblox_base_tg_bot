@@ -24,5 +24,6 @@ USER_PHOTO_PATH = "images/user.jpg"
 USER_TYPE_USER = "Обычный пользователь"
 USER_TYPE_SCAMMER = "Скаммер"
 USER_TYPE_GARANT = "Гарант"
+USER_TYPE_TRUSTED_GARANT = "Проверенный гарант"
 
 POST_COLORS = ("danger", "success", "primary")

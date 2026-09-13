@@ -11,7 +11,8 @@ from config import (
     USER_PHOTO_PATH,
     USER_TYPE_USER,
     USER_TYPE_GARANT,
-    USER_TYPE_SCAMMER
+    USER_TYPE_SCAMMER,
+    USER_TYPE_TRUSTED_GARANT
 )
 
 router = Router()
@@ -24,7 +25,7 @@ start_text = """
 <b>🤖 Что умеет этот бот:</b>
 
 • ❌ проверять репутацию пользователей в сфере, что бы уменьшить шанс скама
-• 📝 делать посты через пост-бота
+• 🆘 Пожаловаться на скам
 • 🔍 Найти себе верного гаранта
 
 <b>Нажимай на кнопки в меню и начинай 👇</b>
@@ -38,6 +39,8 @@ def get_path_by_type(user_type: str):
         return GARANT_PHOTO_PATH
     elif user_type == USER_TYPE_SCAMMER:
         return SCAM_PHOTO_PATH
+    elif user_type == USER_TYPE_TRUSTED_GARANT:
+        return TRUSTED_GARANT_PHOTO_PATH
 
     return USER_PHOTO_PATH
 
@@ -48,6 +51,13 @@ async def send_user_type_message(message: types.Message, user_id, username, user
         f"ℹ <b>ID:</b> <code>{user_id}</code>\n"
         f"👤 <b>Пользователь:</b> @{username}"
     )
+
+    if username is None:
+        response_text = (
+            f"🔷 <b>{user_type}</b> 🔷\n\n"
+            f"ℹ <b>ID:</b> <code>{user_id}</code>\n"
+            f"❗ Внимание, информации о данном пользователе нет в базе данных, будьте осторожны, если он предлагает вам услуги"
+        )
 
     image_path = get_path_by_type(user_type)
 
