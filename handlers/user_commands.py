@@ -2,7 +2,7 @@ from aiogram import Router, types
 from aiogram.filters import Command, CommandStart
 from aiogram.types import FSInputFile
 
-from database.database import get_user_type, add_user
+from database import get_user_type, get_user_id_by_username, add_user
 from utils import get_command_id_keyboard, get_menu_keyboard
 from config import (
     GARANT_PHOTO_PATH,
@@ -52,7 +52,7 @@ async def send_user_type_message(message: types.Message, user_id, username, user
         f"👤 <b>Пользователь:</b> @{username}"
     )
 
-    if username is None:
+    if username is None and user_type == USER_TYPE_USER:
         response_text = (
             f"🔷 <b>{user_type}</b> 🔷\n\n"
             f"ℹ <b>ID:</b> <code>{user_id}</code>\n"
@@ -81,13 +81,26 @@ async def handle_me_command(message: types.Message):
 
 @router.message(Command("check"))
 async def handle_check_command(message: types.Message):
-    user_id = message.text.replace("/check", "").strip()
+    argument = message.text.replace("/check", "", 1).strip()
 
-    if not user_id or not user_id.isdigit():
-        await message.answer("Пожалуйста, введите id пользователя после команды.")
+    if not argument:
+        await message.answer(
+            "Пожалуйста, укажите id или @username пользователя после команды.\n"
+            "Примеры: <code>/check 123456789</code> или <code>/check @username</code>"
+        )
         return
 
-    user_type, username, *_ = await get_user_type(int(user_id))
+    # Если аргумент — @username или не число, ищем пользователя по username
+    if argument.lstrip("@").isdigit():
+        user_id = int(argument.lstrip("@"))
+    else:
+        user_id = await get_user_id_by_username(argument)
+
+        if user_id is None:
+            await message.answer("❗ Пользователь с таким @username не найден в базе данных.")
+            return
+
+    user_type, username, *_ = await get_user_type(user_id)
 
     await send_user_type_message(message, user_id, username, user_type)
 

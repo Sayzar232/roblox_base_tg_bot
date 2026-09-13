@@ -3,7 +3,7 @@ from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 from utils import MenuStates, get_command_id_keyboard
-from database import get_user_type
+from database import get_user_type, get_user_id_by_username
 from .user_commands import send_user_type_message
 
 router = Router()
@@ -11,13 +11,18 @@ router = Router()
 
 @router.message(MenuStates.waiting_for_id)
 async def handle_id(message: types.Message, state: FSMContext):
-    if not message.text.isdigit():
-        await message.answer("Пожалуйста введите правильный id")
-        return
+    argument = message.text.strip()
 
-    user_id = int(message.text)
+    if argument.lstrip("@").isdigit():
+        user_id = int(argument.lstrip("@"))
+    else:
+        user_id = await get_user_id_by_username(argument)
 
-    user_type, username, *_= await get_user_type(int(user_id))
+        if user_id is None:
+            await message.answer("❗ Пользователь с таким @username не найден в базе данных.\nПожалуйста, введите id пользователя.")
+            return
+
+    user_type, username, *_ = await get_user_type(user_id)
 
     await send_user_type_message(message, user_id, username, user_type)
 
@@ -26,7 +31,7 @@ async def handle_id(message: types.Message, state: FSMContext):
 
 @router.callback_query(F.data == "menu_check_user")
 async def handle_menu_check_user(callback: CallbackQuery, state: FSMContext):
-    await callback.message.answer("Теперь отправьте id пользователя")
+    await callback.message.answer("Теперь отправьте id или @username пользователя")
 
     await state.set_state(MenuStates.waiting_for_id)
     await callback.answer()

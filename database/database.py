@@ -78,6 +78,23 @@ async def init_db():
         )
 
 
+async def get_user_id_by_username(username: str):
+    """Находит ID пользователя по @username (без учета регистра). Возвращает None, если не найден."""
+    username = username.lstrip("@").lower()
+
+    async with pool.acquire() as connection:
+        user_id = await connection.fetchval(
+            """
+            SELECT id
+            FROM users
+            WHERE lower(username) = $1;
+            """,
+            username,
+        )
+
+    return user_id
+
+
 async def get_user_type(user_id: int) -> str:
     async with pool.acquire() as connection:
         user_data = await connection.fetchrow(
