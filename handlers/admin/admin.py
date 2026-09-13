@@ -205,7 +205,7 @@ async def handle_admin_garant_proofs_num(message: types.Message, state: FSMConte
         await message.answer("❗ Количество пруфов должно быть целым числом. Попробуйте ещё раз:")
         return
 
-    await state.update_data(proofs_num=proofs_num)
+    await state.update_data(proofs_num=int(proofs_num))
     await state.set_state(AdminStates.waiting_for_duration)
 
     data = await state.get_data()
