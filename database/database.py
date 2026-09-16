@@ -208,6 +208,13 @@ async def add_user(user_id: int, username: str, full_name: str):
         )
 
 
+async def get_all_users():
+    async with pool.acquire() as connection:
+        users = await connection.fetch("SELECT id FROM users")
+
+    return users
+
+
 async def ensure_user_exists(
     user_id: int,
     username: str = None,

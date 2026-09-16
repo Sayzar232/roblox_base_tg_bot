@@ -87,3 +87,11 @@ def get_admin_keyboard():
 
     builder.adjust(1)
     return builder.as_markup()
+
+
+def get_admin_cancel_keyboard():
+    builder = InlineKeyboardBuilder()
+
+    builder.add(InlineKeyboardButton(text="Отмена", callback_data="admin_cancel"))
+
+    return builder.as_markup()

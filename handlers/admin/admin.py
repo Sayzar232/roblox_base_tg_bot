@@ -1,4 +1,6 @@
-from aiogram import Router, types, F
+import logging
+
+from aiogram import Router, types, F, Bot
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
@@ -10,8 +12,18 @@ from database import (
     add_user_garant,
     add_user_scammer,
     ensure_user_exists,
+    get_all_users
 )
-from utils import get_admin_keyboard, get_admin_role_keyboard, get_admin_duration_keyboard, get_admin_skip_keyboard, AdminStates
+from utils import (
+    get_admin_keyboard,
+    get_admin_role_keyboard,
+    get_admin_duration_keyboard,
+    get_admin_skip_keyboard,
+    AdminStates,
+    get_admin_cancel_keyboard
+)
+
+logger = logging.getLogger(__name__)
 
 GARANT_ROLE_NAMES = {
     "garant": USER_TYPE_GARANT,
@@ -21,6 +33,18 @@ GARANT_ROLE_NAMES = {
 NO_INFO_PLACEHOLDER = "Нет информации"
 
 router = Router()
+
+
+async def send_broadcast_text(users, message_text, bot: Bot):
+    sent_count = 0
+    for user in users:
+        try:
+            await bot.send_message(user["id"], message_text, parse_mode="HTML")
+            sent_count += 1
+        except Exception as e:
+            logger.warning("Failed to send broadcast to user %s: %s", user, e)
+
+    return sent_count
 
 
 @router.message(Command("admin"))
@@ -71,6 +95,42 @@ async def handle_admin_give_garant(callback: CallbackQuery, state: FSMContext):
         "👤 Отправьте ID или @username пользователя, которому нужно выдать звание."
     )
     await callback.answer()
+
+
+@router.callback_query(F.data == "admin_broadcast")
+async def handle_admin_broadcast(callback: CallbackQuery, state: FSMContext):
+    if callback.from_user.id not in ADMINS_IDS:
+        return
+
+    await state.set_state(AdminStates.waiting_for_broadcast_text)
+    await callback.message.edit_text(
+        "📝 <b>Теперь введите текст для рассылки.</b>\n\n<i>Используется HTML форматирование</i>",
+        reply_markup=get_admin_cancel_keyboard()
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "admin_cancel")
+async def handle_admin_cancel(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+
+    await callback.message.edit_text("❌ Вы отменили рассылку", reply_markup=get_admin_keyboard())
+
+    await callback.answer()
+
+
+@router.message(F.text, AdminStates.waiting_for_broadcast_text)
+async def handle_admin_text_broadcast(message: types.Message, state: FSMContext, bot: Bot):
+    if message.from_user.id not in ADMINS_IDS:
+        return
+
+    users = await get_all_users()
+
+    sent_count = await send_broadcast_text(users, message.text, bot)
+
+    await message.answer(f"Было отправлено: {sent_count} сообщений")
+
+    await state.clear()
 
 
 @router.message(AdminStates.waiting_for_user)

@@ -16,3 +16,4 @@ class AdminStates(StatesGroup):
     waiting_for_proofs = State()
     waiting_for_proofs_num = State()
     waiting_for_duration = State()
+    waiting_for_broadcast_text = State()
