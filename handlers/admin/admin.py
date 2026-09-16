@@ -4,7 +4,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
 from config import ADMINS_IDS, USER_TYPE_GARANT, USER_TYPE_TRUSTED_GARANT
-from database import get_admin_stats, get_user_id_by_username, add_user_garant, add_user_scammer
+from database import (
+    get_admin_stats,
+    get_user_id_by_username,
+    add_user_garant,
+    add_user_scammer,
+    ensure_user_exists,
+)
 from utils import get_admin_keyboard, get_admin_role_keyboard, get_admin_duration_keyboard, get_admin_skip_keyboard, AdminStates
 
 GARANT_ROLE_NAMES = {
@@ -77,6 +83,20 @@ async def handle_admin_give_user(message: types.Message, state: FSMContext):
 
     if argument.lstrip("@").isdigit():
         user_id = int(argument.lstrip("@"))
+        username = None
+        full_name = None
+
+        # Пытаемся подтянуть данные пользователя из Telegram (best-effort)
+        try:
+            chat = await message.bot.get_chat(user_id)
+            username = chat.username
+            full_name = chat.full_name
+        except Exception:
+            pass
+
+        # Создаём запись в users, если пользователя там ещё нет,
+        # иначе выдача звания упадёт из-за внешнего ключа
+        was_created = await ensure_user_exists(user_id, username=username, full_name=full_name)
     else:
         user_id = await get_user_id_by_username(argument)
 
@@ -87,12 +107,16 @@ async def handle_admin_give_user(message: types.Message, state: FSMContext):
             )
             return
 
+        was_created = False
+
     await state.update_data(target_user_id=user_id)
     await state.set_state(AdminStates.waiting_for_role)
 
+    created_note = "\n\n🆕 Пользователь добавлен в базу данных." if was_created else ""
+
     await message.answer(
         f"👤 <b>Пользователь:</b> <code>{user_id}</code>\n\n"
-        "💎 Выберите, какое звание выдать:",
+        f"💎 Выберите, какое звание выдать:{created_note}",
         reply_markup=get_admin_role_keyboard(),
     )
 

@@ -208,6 +208,32 @@ async def add_user(user_id: int, username: str, full_name: str):
         )
 
 
+async def ensure_user_exists(
+    user_id: int,
+    username: str = None,
+    full_name: str = None,
+) -> bool:
+    """Гарантирует наличие пользователя в таблице users.
+
+    Если пользователя нет — создаёт запись. Возвращает True,
+    если пользователь был добавлен, и False, если он уже существовал.
+    """
+    async with pool.acquire() as connection:
+        created = await connection.fetchval(
+            """
+            INSERT INTO users (id, username, full_name)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (id) DO NOTHING
+            RETURNING id;
+            """,
+            user_id,
+            username,
+            full_name,
+        )
+
+    return created is not None
+
+
 def generate_post_id(length: int = 6) -> str:
     return "".join(random.choices(string.ascii_letters, k=length))
 
