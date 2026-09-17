@@ -2,7 +2,7 @@ from aiogram import Router, types, F
 from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
-from utils import MenuStates, get_command_id_keyboard
+from utils import MenuStates, get_command_id_keyboard, get_buy_garant_keyboard
 from database import get_user_type, get_user_id_by_username
 from .user_commands import send_user_type_message
 
@@ -51,5 +51,12 @@ async def handle_menu_check_me(callback: CallbackQuery):
 @router.callback_query(F.data == "menu_get_id")
 async def handle_menu_get_id(callback: CallbackQuery):
     await callback.message.answer(f"<b>Выберите объект для получения ID 👇:</b>", reply_markup=get_command_id_keyboard())
+
+    await callback.answer()
+
+
+@router.callback_query(F.data == "menu_buy_garant")
+async def handle_menu_buy(callback: CallbackQuery):
+    await callback.message.answer("Выберите, то что хотите купить 👇", reply_markup=get_buy_garant_keyboard())
 
     await callback.answer()

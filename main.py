@@ -9,19 +9,23 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 
-from handlers import commands_router, reply_keyboard_id_router, menu_router, admin_router
+from handlers import commands_router, reply_keyboard_id_router, menu_router, shopping_router, admin_router
 import database as db
 
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(bot=bot, storage=MemoryStorage())
 
-dp.include_routers(commands_router, admin_router, reply_keyboard_id_router, menu_router)
+dp.include_routers(commands_router, admin_router, reply_keyboard_id_router, menu_router, shopping_router)
 
 
 async def on_startup(bot: Bot):
     await db.init_db()
 
-    await bot.set_webhook(f"{WEBHOOK_URL}{WEBHOOK_PATH}", secret_token=WEBHOOK_SECRET, allowed_updates=["message", "callback_query"])
+    await bot.set_webhook(
+        f"{WEBHOOK_URL}{WEBHOOK_PATH}",
+        secret_token=WEBHOOK_SECRET,
+        allowed_updates=["message", "callback_query", "pre_checkout_query"],
+    )
 
 
 async def main():

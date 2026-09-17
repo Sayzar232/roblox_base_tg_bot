@@ -20,16 +20,7 @@ def get_post_keyboard(buttons: dict | None):
     return builder.as_markup()
 
 
-def get_service_keyboard():
-    builder = InlineKeyboardBuilder()
-
-    builder.add(InlineKeyboardButton(text="🔷 Ранг", callback_data="services_rang"))
-    builder.add(InlineKeyboardButton(text="💎 Гарант", callback_data="services_garant"))
-    builder.add(InlineKeyboardButton(text="🔙 Назад", callback_data="services_back"))
-
-    return builder.as_markup()
-
-
+# Menu keyboard
 def get_menu_keyboard():
     builder = InlineKeyboardBuilder()
 
@@ -45,6 +36,7 @@ def get_menu_keyboard():
     return builder.as_markup()
 
 
+# Admin keyboards
 def get_admin_role_keyboard():
     builder = InlineKeyboardBuilder()
 
@@ -94,4 +86,44 @@ def get_admin_cancel_keyboard():
 
     builder.add(InlineKeyboardButton(text="Отмена", callback_data="admin_cancel"))
 
+    return builder.as_markup()
+
+
+# Buy keyboards
+def get_buy_garant_keyboard():
+    builder = InlineKeyboardBuilder()
+    
+    builder.add(InlineKeyboardButton(text="Гарант - 750⭐", callback_data="buy_garant"))
+    builder.add(InlineKeyboardButton(text="Проверенный гарант - 1500⭐", callback_data="buy_trusted_garant"))
+    builder.add(InlineKeyboardButton(text="Назад", callback_data="buy_back"))
+
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_buy_skip_keyboard():
+    builder = InlineKeyboardBuilder()
+
+    builder.add(InlineKeyboardButton(text="⏭ Пропустить", callback_data="buy:skip"))
+    builder.add(InlineKeyboardButton(text="🔙 Отмена", callback_data="buy:cancel"))
+
+    builder.adjust(2)
+    return builder.as_markup()
+
+
+def get_buy_cancel_keyboard():
+    builder = InlineKeyboardBuilder()
+
+    builder.add(InlineKeyboardButton(text="🔙 Отмена", callback_data="buy:cancel"))
+
+    return builder.as_markup()
+
+
+def get_buy_payment_keyboard(stars: int):
+    builder = InlineKeyboardBuilder()
+
+    builder.add(InlineKeyboardButton(text=f"💳 Оплатить {stars}⭐", callback_data="buy:pay"))
+    builder.add(InlineKeyboardButton(text="🔙 Отмена", callback_data="buy:cancel"))
+
+    builder.adjust(1)
     return builder.as_markup()
