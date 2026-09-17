@@ -23,3 +23,8 @@ class BuyStates(StatesGroup):
     waiting_for_proofs = State()
     waiting_for_proofs_num = State()
     waiting_for_payment = State()
+
+class ReportScammer(StatesGroup):
+    waiting_for_id = State()
+    waiting_for_username = State()
+    waiting_for_reason = State()

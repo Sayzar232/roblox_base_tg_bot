@@ -2,7 +2,7 @@ from aiogram import Router, types, F
 from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
-from utils import MenuStates, get_command_id_keyboard, get_buy_garant_keyboard
+from utils import MenuStates, get_command_id_keyboard, get_buy_garant_keyboard, ReportScammer
 from database import get_user_type, get_user_id_by_username
 from .user_commands import send_user_type_message
 
@@ -58,5 +58,20 @@ async def handle_menu_get_id(callback: CallbackQuery):
 @router.callback_query(F.data == "menu_buy_garant")
 async def handle_menu_buy(callback: CallbackQuery):
     await callback.message.answer("Выберите, то что хотите купить 👇", reply_markup=get_buy_garant_keyboard())
+
+    await callback.answer()
+
+
+@router.callback_query(F.data == "menu_support_scam")
+async def handle_menu_support_scam(callback: CallbackQuery, state: FSMContext):
+    response_text = (
+        "🆘 <b>Если вы попались на скам</b> или на что-то подобное, то можете отправить этого пользователя сюда, чтобы занести его в базу скаммеров\n\n"
+        "🔍 Модераторы рассмотрят вашу жалобу и занесут пользвателя в базу\n\n"
+        "<b>Для начала отправьте id пользователя 👇</b>"
+    )
+
+    await state.set_state(ReportScammer.waiting_for_id)
+
+    await callback.message.answer(response_text)
 
     await callback.answer()

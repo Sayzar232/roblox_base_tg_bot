@@ -119,6 +119,36 @@ def get_buy_cancel_keyboard():
     return builder.as_markup()
 
 
+def get_report_skip_keyboard():
+    builder = InlineKeyboardBuilder()
+
+    builder.add(InlineKeyboardButton(text="⏭ Пропустить", callback_data="report:skip"))
+    builder.add(InlineKeyboardButton(text="🔙 Отмена", callback_data="report:cancel"))
+
+    builder.adjust(2)
+    return builder.as_markup()
+
+
+def get_admin_report_keyboard(target_id: int):
+    builder = InlineKeyboardBuilder()
+
+    builder.add(InlineKeyboardButton(text="🚫 Занести в базу скама", callback_data=f"report:scam:{target_id}"))
+
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_buy_garant_keyboard():
+    builder = InlineKeyboardBuilder()
+
+    builder.add(InlineKeyboardButton(text="Гарант - 750⭐", callback_data="buy_garant"))
+    builder.add(InlineKeyboardButton(text="Проверенный гарант - 1500⭐", callback_data="buy_trusted_garant"))
+    builder.add(InlineKeyboardButton(text="Назад", callback_data="buy_back"))
+
+    builder.adjust(1)
+    return builder.as_markup()
+
+
 def get_buy_payment_keyboard(stars: int):
     builder = InlineKeyboardBuilder()
 
