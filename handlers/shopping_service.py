@@ -10,7 +10,7 @@ from aiogram.types import (
 from aiogram.fsm.context import FSMContext
 
 from config import ADMINS_IDS, USER_TYPE_GARANT, USER_TYPE_TRUSTED_GARANT, USER_TYPE_SCAMMER
-from database import add_user_garant, get_user_type
+from database import db
 from utils import (
     BuyStates,
     get_buy_skip_keyboard,
@@ -104,7 +104,7 @@ async def handle_buy_trusted_garant(callback: CallbackQuery, state: FSMContext):
 
 
 async def start_buy_flow(callback: CallbackQuery, state: FSMContext, buy_type: str):
-    user_type, *_ = await get_user_type(callback.from_user.id)
+    user_type, *_ = await db.get_user_type(callback.from_user.id)
 
     if user_type == USER_TYPE_SCAMMER:
         await callback.answer("Скаммеры не могут покупать гаранта ❌", show_alert=True)
@@ -214,7 +214,7 @@ async def handle_successful_payment(message: Message, state: FSMContext, bot):
     role_name = GARANT_ROLE_NAMES.get(buy_type, USER_TYPE_GARANT)
 
     # Выдаём звание гаранта на месяц
-    await add_user_garant(
+    await db.add_user_garant(
         message.from_user.id,
         garant_name=role_name,
         roblox_username=data.get("roblox_username"),

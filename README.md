@@ -1,6 +1,6 @@
 # 💾 Roblox база скамеров и гарантов
 
-Telegram бот с базой скамеров и мошенников, а также списком гарантов на aiogram 3, связанный с Roblox плейсами\
+Telegram бот с базой скамеров и мошенников, а также списком гарантов на aiogram 3, связанный с Roblox плейсами
 
 ## 🛠 Технологии
 
@@ -129,7 +129,7 @@ roblox_base_bot/
 
 ## 🗄 База данных
 
-Схема создаётся автоматически при старте (`init_db`):
+Схема создаётся автоматически при старте (`db.initialize()`):
 
 - **`users`** — все пользователи бота (`id`, `username`, `full_name`, `created_at`)
 - **`user_garants`** — звания гарантов (`garant_name`, `roblox_username`, `proofs`, `proofs_num`, `purchased_at`, `expires_at`)

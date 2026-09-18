@@ -2,7 +2,8 @@ from aiogram import Router, types, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 
-from database.database import create_post, get_favorite_posts, set_post_favorite, POST_COLORS
+from config import POST_COLORS
+from database import db
 from utils import (
     get_menu_keyboard,
     get_post_bot_keyboard,
@@ -70,7 +71,7 @@ async def handle_back(message: types.Message):
 
 @router.message(F.text == "Избранные")
 async def handle_favorite_posts(message: types.Message):
-    favorite_posts = await get_favorite_posts(message.from_user.id)
+    favorite_posts = await db.get_favorite_posts(message.from_user.id)
 
     if not favorite_posts:
         await message.answer("У вас пока нет избранных постов.", reply_markup=get_post_bot_keyboard())
@@ -171,7 +172,7 @@ async def handle_save_post(callback: types.CallbackQuery, state: FSMContext):
         await callback.answer("Пост уже сохранён", show_alert=True)
         return
 
-    post_id = await create_post(
+    post_id = await db.create_post(
         callback.from_user.id,
         data["text"],
         data.get("photo_file_id"),
@@ -212,7 +213,7 @@ async def handle_save_to_favorites(message: types.Message, state: FSMContext):
         await message.answer("Нет сохранённого поста для добавления в избранные.")
         return
 
-    await set_post_favorite(post_id)
+    await db.set_post_favorite(post_id)
     await state.update_data(last_post_id=None)
 
     await message.answer("✅ Пост добавлен в избранные!", reply_markup=get_post_bot_keyboard())

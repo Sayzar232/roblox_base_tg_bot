@@ -6,14 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
 from config import ADMINS_IDS, USER_TYPE_GARANT, USER_TYPE_TRUSTED_GARANT
-from database import (
-    get_admin_stats,
-    get_user_id_by_username,
-    add_user_garant,
-    add_user_scammer,
-    ensure_user_exists,
-    get_all_users
-)
+from database import db
 from utils import (
     get_admin_keyboard,
     get_admin_role_keyboard,
@@ -71,7 +64,7 @@ async def handle_admin_stats(callback: CallbackQuery):
     if callback.from_user.id not in ADMINS_IDS:
         return
 
-    stats = await get_admin_stats()
+    stats = await db.get_admin_stats()
 
     response_text = (
         "📊 <b>Статистика бота</b>\n\n"
@@ -124,7 +117,7 @@ async def handle_admin_text_broadcast(message: types.Message, state: FSMContext,
     if message.from_user.id not in ADMINS_IDS:
         return
 
-    users = await get_all_users()
+    users = await db.get_all_users()
 
     sent_count = await send_broadcast_text(users, message.text, bot)
 
@@ -156,9 +149,9 @@ async def handle_admin_give_user(message: types.Message, state: FSMContext):
 
         # Создаём запись в users, если пользователя там ещё нет,
         # иначе выдача звания упадёт из-за внешнего ключа
-        was_created = await ensure_user_exists(user_id, username=username, full_name=full_name)
+        was_created = await db.ensure_user_exists(user_id, username=username, full_name=full_name)
     else:
-        user_id = await get_user_id_by_username(argument)
+        user_id = await db.get_user_id_by_username(argument)
 
         if user_id is None:
             await message.answer(
@@ -321,7 +314,7 @@ async def handle_admin_garant_duration(callback: CallbackQuery, state: FSMContex
     garant_role = data.get("garant_role", "garant")
     garant_name = GARANT_ROLE_NAMES.get(garant_role, USER_TYPE_GARANT)
 
-    await add_user_garant(
+    await db.add_user_garant(
         user_id,
         garant_name=garant_name,
         roblox_username=data.get("roblox_username"),
@@ -359,7 +352,7 @@ async def handle_admin_scammer_reason(message: types.Message, state: FSMContext)
     data = await state.get_data()
     user_id = data.get("target_user_id")
 
-    await add_user_scammer(user_id, reason)
+    await db.add_user_scammer(user_id, reason)
     await state.clear()
 
     await message.answer(f"✅ Пользователь <code>{user_id}</code> получил звание <b>Скаммер</b> ❌")

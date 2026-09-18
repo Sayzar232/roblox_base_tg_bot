@@ -9,398 +9,401 @@ from config import (
     USER_TYPE_SCAMMER,
     USER_TYPE_GARANT,
     USER_TYPE_TRUSTED_GARANT,
-    POST_COLORS
 )
 
-pool = None
 
+class Database:
+    """Обёртка над пулом соединений asyncpg со всеми запросами к базе данных."""
 
-async def init_db():
-    global pool
-    pool = await asyncpg.create_pool(
-        DATABASE_URL,
-        min_size=1,
-        max_size=10,
-        command_timeout=60,
-    )
+    def __init__(
+        self,
+        dsn: str = None,
+        min_size: int = 1,
+        max_size: int = 10,
+        command_timeout: int = 60,
+    ):
+        self._dsn = dsn if dsn is not None else DATABASE_URL
+        self._min_size = min_size
+        self._max_size = max_size
+        self._command_timeout = command_timeout
+        self.pool = None
 
-    async with pool.acquire() as connection:
-        await connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS users (
-                id BIGINT PRIMARY KEY,
-                username TEXT,
-                full_name TEXT,
-                created_at TIMESTAMP DEFAULT NOW()
-            );
-            """
+    async def initialize(self):
+        """Создаёт пул соединений и таблицы, если их ещё нет."""
+        self.pool = await asyncpg.create_pool(
+            self._dsn,
+            min_size=self._min_size,
+            max_size=self._max_size,
+            command_timeout=self._command_timeout,
         )
 
-        await connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS user_garants (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                garant_name TEXT,
-                roblox_username TEXT,
-                proofs TEXT,
-                proofs_num INT,
-                purchased_at TIMESTAMP DEFAULT NOW(),
-                expires_at TIMESTAMP
-            );
-            """
-        )
+        await self._create_tables()
 
-        await connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS user_scammers (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                reason TEXT NOT NULL,
-                proofs TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT NOW()
-            );
-            """
-        )
+    async def close(self):
+        """Закрывает пул соединений."""
+        if self.pool is not None:
+            await self.pool.close()
+            self.pool = None
 
-        await connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS posts (
-                id TEXT PRIMARY KEY,
-                user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                text TEXT,
-                photo_file_id TEXT,
-                buttons JSONB,
-                is_favorite BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT NOW()
-            );
-            """
-        )
+    async def _create_tables(self):
+        async with self.pool.acquire() as connection:
+            await connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS users (
+                    id BIGINT PRIMARY KEY,
+                    username TEXT,
+                    full_name TEXT,
+                    created_at TIMESTAMP DEFAULT NOW()
+                );
+                """
+            )
 
+            await connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS user_garants (
+                    id SERIAL PRIMARY KEY,
+                    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    garant_name TEXT,
+                    roblox_username TEXT,
+                    proofs TEXT,
+                    proofs_num INT,
+                    purchased_at TIMESTAMP DEFAULT NOW(),
+                    expires_at TIMESTAMP
+                );
+                """
+            )
 
-async def get_user_id_by_username(username: str):
-    """Находит ID пользователя по @username (без учета регистра). Возвращает None, если не найден."""
-    username = username.lstrip("@").lower()
+            await connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS user_scammers (
+                    id SERIAL PRIMARY KEY,
+                    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    reason TEXT NOT NULL,
+                    proofs TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT NOW()
+                );
+                """
+            )
 
-    async with pool.acquire() as connection:
-        user_id = await connection.fetchval(
-            """
-            SELECT id
-            FROM users
-            WHERE lower(username) = $1;
-            """,
-            username,
-        )
+            await connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS posts (
+                    id TEXT PRIMARY KEY,
+                    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    text TEXT,
+                    photo_file_id TEXT,
+                    buttons JSONB,
+                    is_favorite BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT NOW()
+                );
+                """
+            )
 
-    return user_id
+    async def get_user_id_by_username(self, username: str):
+        """Находит ID пользователя по @username (без учета регистра). Возвращает None, если не найден."""
+        username = username.lstrip("@").lower()
 
+        async with self.pool.acquire() as connection:
+            user_id = await connection.fetchval(
+                """
+                SELECT id
+                FROM users
+                WHERE lower(username) = $1;
+                """,
+                username,
+            )
 
-async def get_user_type(user_id: int) -> str:
-    async with pool.acquire() as connection:
-        user_data = await connection.fetchrow(
-            """
-            SELECT username, full_name
-            FROM users
-            WHERE id = $1;
-            """,
-            user_id,
-        )
+        return user_id
 
-        if user_data is None:
-            return USER_TYPE_USER, None, None
+    async def get_user_type(self, user_id: int) -> str:
+        async with self.pool.acquire() as connection:
+            user_data = await connection.fetchrow(
+                """
+                SELECT username, full_name
+                FROM users
+                WHERE id = $1;
+                """,
+                user_id,
+            )
 
-        is_scammer = await connection.fetchval(
-            """
-            SELECT 1
-            FROM user_scammers
-            WHERE user_id = $1
-            LIMIT 1;
-            """,
-            user_id,
-        )
-        if is_scammer is not None:
-            return USER_TYPE_SCAMMER, user_data["username"], user_data["full_name"]
+            if user_data is None:
+                return USER_TYPE_USER, None, None
 
-        garant_name = await connection.fetchval(
-            """
-            SELECT garant_name
-            FROM user_garants
-            WHERE user_id = $1
-              AND (expires_at IS NULL OR expires_at > NOW())
-            LIMIT 1;
-            """,
-            user_id,
-        )
-        if garant_name is not None:
-            return garant_name, user_data["username"], user_data["full_name"]
-
-    return USER_TYPE_USER, user_data["username"], user_data["full_name"]
-
-
-async def get_user_info(user_id: int):
-    """Возвращает информацию о пользователе из дополнительной таблицы.
-
-    Если пользователь скаммер — возвращает данные из user_scammers,
-    если гарант (и гарантство ещё действительно) — из user_garants.
-    Если пользователь не найден или является обычным пользователем — возвращает None.
-    """
-    async with pool.acquire() as connection:
-        scammer = await connection.fetchrow(
-            """
-            SELECT u.username, u.full_name, s.reason, s.proofs, s.created_at
-            FROM user_scammers s
-            JOIN users u ON u.id = s.user_id
-            WHERE s.user_id = $1
-            ORDER BY s.created_at DESC
-            LIMIT 1;
-            """,
-            user_id,
-        )
-        if scammer is not None:
-            return {
-                "user_type": USER_TYPE_SCAMMER,
-                "username": scammer["username"],
-                "full_name": scammer["full_name"],
-                "reason": scammer["reason"],
-                "proofs": scammer["proofs"],
-                "created_at": scammer["created_at"],
-            }
-
-        garant = await connection.fetchrow(
-            """
-            SELECT u.username, u.full_name, g.garant_name, g.roblox_username,
-                   g.proofs, g.proofs_num, g.purchased_at, g.expires_at
-            FROM user_garants g
-            JOIN users u ON u.id = g.user_id
-            WHERE g.user_id = $1
-              AND (g.expires_at IS NULL OR g.expires_at > NOW())
-            ORDER BY g.purchased_at DESC
-            LIMIT 1;
-            """,
-            user_id,
-        )
-        if garant is not None:
-            return {
-                "user_type": garant["garant_name"] or USER_TYPE_GARANT,
-                "username": garant["username"],
-                "full_name": garant["full_name"],
-                "roblox_username": garant["roblox_username"],
-                "proofs": garant["proofs"],
-                "proofs_num": garant["proofs_num"],
-                "purchased_at": garant["purchased_at"],
-                "expires_at": garant["expires_at"],
-            }
-
-    return None
-
-
-async def add_user(user_id: int, username: str, full_name: str):
-    async with pool.acquire() as connection:
-        await connection.execute(
-            """
-            INSERT INTO users (id, username, full_name)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (id) DO NOTHING;
-            """,
-            user_id,
-            username,
-            full_name,
-        )
-
-
-async def get_all_users():
-    async with pool.acquire() as connection:
-        users = await connection.fetch("SELECT id FROM users")
-
-    return users
-
-
-async def ensure_user_exists(
-    user_id: int,
-    username: str = None,
-    full_name: str = None,
-) -> bool:
-    """Гарантирует наличие пользователя в таблице users.
-
-    Если пользователя нет — создаёт запись. Возвращает True,
-    если пользователь был добавлен, и False, если он уже существовал.
-    """
-    async with pool.acquire() as connection:
-        created = await connection.fetchval(
-            """
-            INSERT INTO users (id, username, full_name)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (id) DO NOTHING
-            RETURNING id;
-            """,
-            user_id,
-            username,
-            full_name,
-        )
-
-    return created is not None
-
-
-def generate_post_id(length: int = 6) -> str:
-    return "".join(random.choices(string.ascii_letters, k=length))
-
-
-async def create_post(user_id: int, text: str, photo_file_id: str, buttons: list) -> str:
-    async with pool.acquire() as connection:
-        # Получает Id, которого еще нет
-        while True:
-            post_id = generate_post_id()
-
-            is_exists = await connection.fetchval(
+            is_scammer = await connection.fetchval(
                 """
                 SELECT 1
+                FROM user_scammers
+                WHERE user_id = $1
+                LIMIT 1;
+                """,
+                user_id,
+            )
+            if is_scammer is not None:
+                return USER_TYPE_SCAMMER, user_data["username"], user_data["full_name"]
+
+            garant_name = await connection.fetchval(
+                """
+                SELECT garant_name
+                FROM user_garants
+                WHERE user_id = $1
+                  AND (expires_at IS NULL OR expires_at > NOW())
+                LIMIT 1;
+                """,
+                user_id,
+            )
+            if garant_name is not None:
+                return garant_name, user_data["username"], user_data["full_name"]
+
+        return USER_TYPE_USER, user_data["username"], user_data["full_name"]
+
+    async def get_user_info(self, user_id: int):
+        """Возвращает информацию о пользователе из дополнительной таблицы.
+
+        Если пользователь скаммер — возвращает данные из user_scammers,
+        если гарант (и гарантство ещё действительно) — из user_garants.
+        Если пользователь не найден или является обычным пользователем — возвращает None.
+        """
+        async with self.pool.acquire() as connection:
+            scammer = await connection.fetchrow(
+                """
+                SELECT u.username, u.full_name, s.reason, s.proofs, s.created_at
+                FROM user_scammers s
+                JOIN users u ON u.id = s.user_id
+                WHERE s.user_id = $1
+                ORDER BY s.created_at DESC
+                LIMIT 1;
+                """,
+                user_id,
+            )
+            if scammer is not None:
+                return {
+                    "user_type": USER_TYPE_SCAMMER,
+                    "username": scammer["username"],
+                    "full_name": scammer["full_name"],
+                    "reason": scammer["reason"],
+                    "proofs": scammer["proofs"],
+                    "created_at": scammer["created_at"],
+                }
+
+            garant = await connection.fetchrow(
+                """
+                SELECT u.username, u.full_name, g.garant_name, g.roblox_username,
+                       g.proofs, g.proofs_num, g.purchased_at, g.expires_at
+                FROM user_garants g
+                JOIN users u ON u.id = g.user_id
+                WHERE g.user_id = $1
+                  AND (g.expires_at IS NULL OR g.expires_at > NOW())
+                ORDER BY g.purchased_at DESC
+                LIMIT 1;
+                """,
+                user_id,
+            )
+            if garant is not None:
+                return {
+                    "user_type": garant["garant_name"] or USER_TYPE_GARANT,
+                    "username": garant["username"],
+                    "full_name": garant["full_name"],
+                    "roblox_username": garant["roblox_username"],
+                    "proofs": garant["proofs"],
+                    "proofs_num": garant["proofs_num"],
+                    "purchased_at": garant["purchased_at"],
+                    "expires_at": garant["expires_at"],
+                }
+
+        return None
+
+
+    async def add_user(self, user_id: int, username: str, full_name: str):
+        async with self.pool.acquire() as connection:
+            await connection.execute(
+                """
+                INSERT INTO users (id, username, full_name)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (id) DO NOTHING;
+                """,
+                user_id,
+                username,
+                full_name,
+            )
+
+    async def get_all_users(self):
+        async with self.pool.acquire() as connection:
+            users = await connection.fetch("SELECT id FROM users")
+
+        return users
+
+    async def ensure_user_exists(
+        self,
+        user_id: int,
+        username: str = None,
+        full_name: str = None,
+    ) -> bool:
+        """Гарантирует наличие пользователя в таблице users.
+
+        Если пользователя нет — создаёт запись. Возвращает True,
+        если пользователь был добавлен, и False, если он уже существовал.
+        """
+        async with self.pool.acquire() as connection:
+            created = await connection.fetchval(
+                """
+                INSERT INTO users (id, username, full_name)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (id) DO NOTHING
+                RETURNING id;
+                """,
+                user_id,
+                username,
+                full_name,
+            )
+
+        return created is not None
+
+    async def add_user_garant(
+        self,
+        user_id: int,
+        garant_name: str = None,
+        roblox_username: str = None,
+        proofs: str = None,
+        proofs_num: str = None,
+        duration_days: int = None,
+    ):
+        """Выдаёт пользователю звание гаранта.
+
+        duration_days = None — бессрочно, иначе гарантство истечёт через указанное количество дней.
+        """
+        async with self.pool.acquire() as connection:
+            await connection.execute(
+                """
+                INSERT INTO user_garants (user_id, garant_name, roblox_username, proofs, proofs_num, expires_at)
+                VALUES ($1, $2, $3, $4, $5,
+                        CASE WHEN $6::int IS NULL THEN NULL ELSE NOW() + make_interval(days => $6::int) END);
+                """,
+                user_id,
+                garant_name,
+                roblox_username,
+                proofs,
+                proofs_num,
+                duration_days,
+            )
+
+    async def add_user_scammer(self, user_id: int, reason: str, proofs: str = "Нет информации"):
+        """Добавляет пользователя в скаммеры."""
+        async with self.pool.acquire() as connection:
+            await connection.execute(
+                """
+                INSERT INTO user_scammers (user_id, reason, proofs)
+                VALUES ($1, $2, $3);
+                """,
+                user_id,
+                reason,
+                proofs,
+            )
+    @staticmethod
+    def generate_post_id(length: int = 6) -> str:
+        return "".join(random.choices(string.ascii_letters, k=length))
+
+    async def create_post(self, user_id: int, text: str, photo_file_id: str, buttons: list) -> str:
+        async with self.pool.acquire() as connection:
+            # Получает Id, которого еще нет
+            while True:
+                post_id = self.generate_post_id()
+
+                is_exists = await connection.fetchval(
+                    """
+                    SELECT 1
+                    FROM posts
+                    WHERE id = $1;
+                    """,
+                    post_id,
+                )
+                if is_exists is None:
+                    break
+
+            await connection.execute(
+                """
+                INSERT INTO posts (id, user_id, text, photo_file_id, buttons)
+                VALUES ($1, $2, $3, $4, $5::jsonb);
+                """,
+                post_id,
+                user_id,
+                text,
+                photo_file_id,
+                json.dumps(buttons) if buttons else None,
+            )
+
+            return post_id
+
+    async def get_post(self, post_id: str):
+        async with self.pool.acquire() as connection:
+            return await connection.fetchrow(
+                """
+                SELECT id, user_id, text, photo_file_id, buttons
                 FROM posts
                 WHERE id = $1;
                 """,
                 post_id,
             )
-            if is_exists is None:
-                break
 
-        await connection.execute(
-            """
-            INSERT INTO posts (id, user_id, text, photo_file_id, buttons)
-            VALUES ($1, $2, $3, $4, $5::jsonb);
-            """,
-            post_id,
-            user_id,
-            text,
-            photo_file_id,
-            json.dumps(buttons) if buttons else None,
-        )
+    async def get_favorite_posts(self, user_id: int) -> list:
+        async with self.pool.acquire() as connection:
+            return await connection.fetch(
+                """
+                SELECT id, text
+                FROM posts
+                WHERE user_id = $1
+                  AND is_favorite = TRUE
+                ORDER BY created_at DESC;
+                """,
+                user_id,
+            )
 
-        return post_id
-
-
-async def get_post(post_id: str):
-    async with pool.acquire() as connection:
-        return await connection.fetchrow(
-            """
-            SELECT id, user_id, text, photo_file_id, buttons
-            FROM posts
-            WHERE id = $1;
-            """,
-            post_id,
-        )
+    async def set_post_favorite(self, post_id: str, is_favorite: bool = True):
+        async with self.pool.acquire() as connection:
+            await connection.execute(
+                """
+                UPDATE posts
+                SET is_favorite = $2
+                WHERE id = $1;
+                """,
+                post_id,
+                is_favorite,
+            )
 
 
-async def get_favorite_posts(user_id: int) -> list:
-    async with pool.acquire() as connection:
-        return await connection.fetch(
-            """
-            SELECT id, text
-            FROM posts
-            WHERE user_id = $1
-              AND is_favorite = TRUE
-            ORDER BY created_at DESC;
-            """,
-            user_id,
-        )
+    async def get_admin_stats(self) -> dict:
+        """Собирает статистику бота для админ панели."""
+        async with self.pool.acquire() as connection:
+            users = await connection.fetchval("SELECT COUNT(*) FROM users;")
+            users_today = await connection.fetchval(
+                """
+                SELECT COUNT(*)
+                FROM users
+                WHERE created_at >= CURRENT_DATE;
+                """
+            )
+            garants = await connection.fetchval(
+                """
+                SELECT COUNT(DISTINCT user_id)
+                FROM user_garants
+                WHERE expires_at IS NULL OR expires_at > NOW();
+                """
+            )
+            scammers = await connection.fetchval(
+                """
+                SELECT COUNT(DISTINCT user_id)
+                FROM user_scammers;
+                """
+            )
+            posts = await connection.fetchval("SELECT COUNT(*) FROM posts;")
+
+        return {
+            "users": users or 0,
+            "users_today": users_today or 0,
+            "garants": garants or 0,
+            "scammers": scammers or 0,
+            "posts": posts or 0,
+        }
 
 
-async def set_post_favorite(post_id: str, is_favorite: bool = True):
-    async with pool.acquire() as connection:
-        await connection.execute(
-            """
-            UPDATE posts
-            SET is_favorite = $2
-            WHERE id = $1;
-            """,
-            post_id,
-            is_favorite,
-        )
-
-
-async def set_post_favorite(post_id: str, is_favorite: bool = True):
-    async with pool.acquire() as connection:
-        await connection.execute(
-            """
-            UPDATE posts
-            SET is_favorite = $2
-            WHERE id = $1;
-            """,
-            post_id,
-            is_favorite,
-        )
-
-
-async def get_admin_stats() -> dict:
-    """Собирает статистику бота для админ панели."""
-    async with pool.acquire() as connection:
-        users = await connection.fetchval("SELECT COUNT(*) FROM users;")
-        users_today = await connection.fetchval(
-            """
-            SELECT COUNT(*)
-            FROM users
-            WHERE created_at >= CURRENT_DATE;
-            """
-        )
-        garants = await connection.fetchval(
-            """
-            SELECT COUNT(DISTINCT user_id)
-            FROM user_garants
-            WHERE expires_at IS NULL OR expires_at > NOW();
-            """
-        )
-        scammers = await connection.fetchval(
-            """
-            SELECT COUNT(DISTINCT user_id)
-            FROM user_scammers;
-            """
-        )
-        posts = await connection.fetchval("SELECT COUNT(*) FROM posts;")
-
-    return {
-        "users": users or 0,
-        "users_today": users_today or 0,
-        "garants": garants or 0,
-        "scammers": scammers or 0,
-        "posts": posts or 0,
-    }
-
-
-async def add_user_garant(
-    user_id: int,
-    garant_name: str = None,
-    roblox_username: str = None,
-    proofs: str = None,
-    proofs_num: str = None,
-    duration_days: int = None,
-):
-    """Выдаёт пользователю звание гаранта.
-
-    duration_days = None — бессрочно, иначе гарантство истечёт через указанное количество дней.
-    """
-    async with pool.acquire() as connection:
-        await connection.execute(
-            """
-            INSERT INTO user_garants (user_id, garant_name, roblox_username, proofs, proofs_num, expires_at)
-            VALUES ($1, $2, $3, $4, $5,
-                    CASE WHEN $6::int IS NULL THEN NULL ELSE NOW() + make_interval(days => $6::int) END);
-            """,
-            user_id,
-            garant_name,
-            roblox_username,
-            proofs,
-            proofs_num,
-            duration_days,
-        )
-
-
-async def add_user_scammer(user_id: int, reason: str, proofs: str = "Нет информации"):
-    """Добавляет пользователя в скаммеры."""
-    async with pool.acquire() as connection:
-        await connection.execute(
-            """
-            INSERT INTO user_scammers (user_id, reason, proofs)
-            VALUES ($1, $2, $3);
-            """,
-            user_id,
-            reason,
-            proofs,
-        )
+# Глобальный экземпляр базы данных, используемый во всём приложении
+db = Database()

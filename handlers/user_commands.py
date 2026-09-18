@@ -2,7 +2,7 @@ from aiogram import Router, types
 from aiogram.filters import Command, CommandStart
 from aiogram.types import FSInputFile
 
-from database import get_user_type, get_user_info, get_user_id_by_username, add_user
+from database import db
 from utils import get_command_id_keyboard, get_menu_keyboard
 from config import (
     GARANT_PHOTO_PATH,
@@ -59,7 +59,7 @@ async def send_user_type_message(message: types.Message, user_id, username, user
             f"❗ Внимание, информации о данном пользователе нет в базе данных, будьте осторожны, если он предлагает вам услуги"
         )
     elif user_type in (USER_TYPE_SCAMMER, USER_TYPE_GARANT, USER_TYPE_TRUSTED_GARANT):
-        user_info = await get_user_info(user_id)
+        user_info = await db.get_user_info(user_id)
 
         if user_info is not None:
             if user_type == USER_TYPE_SCAMMER:
@@ -86,7 +86,7 @@ async def send_user_type_message(message: types.Message, user_id, username, user
 
 @router.message(CommandStart())
 async def start_message(message: types.Message):
-    await add_user(message.from_user.id, message.from_user.username, message.from_user.full_name)
+    await db.add_user(message.from_user.id, message.from_user.username, message.from_user.full_name)
     await message.answer(start_text, reply_markup=get_menu_keyboard())
 
 
@@ -94,7 +94,7 @@ async def start_message(message: types.Message):
 async def handle_me_command(message: types.Message):
     user_id = message.from_user.id
     username = message.from_user.username
-    user_type, *_ = await get_user_type(user_id)
+    user_type, *_ = await db.get_user_type(user_id)
 
     await send_user_type_message(message, user_id, username, user_type)
 
@@ -114,13 +114,13 @@ async def handle_check_command(message: types.Message):
     if argument.lstrip("@").isdigit():
         user_id = int(argument.lstrip("@"))
     else:
-        user_id = await get_user_id_by_username(argument)
+        user_id = await db.get_user_id_by_username(argument)
 
         if user_id is None:
             await message.answer("❗ Пользователь с таким @username не найден в базе данных.")
             return
 
-    user_type, username, *_ = await get_user_type(user_id)
+    user_type, username, *_ = await db.get_user_type(user_id)
 
     await send_user_type_message(message, user_id, username, user_type)
 

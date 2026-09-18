@@ -5,7 +5,7 @@ from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 from config import ADMINS_IDS
-from database import get_user_id_by_username, get_user_type, add_user_scammer, ensure_user_exists
+from database import db
 from utils import (
     ReportScammer,
     get_report_skip_keyboard,
@@ -36,7 +36,7 @@ async def handle_report_scammer_id(message: types.Message, state: FSMContext):
     if argument.lstrip("@").isdigit():
         target_id = int(argument.lstrip("@"))
     else:
-        target_id = await get_user_id_by_username(argument)
+        target_id = await db.get_user_id_by_username(argument)
 
         if target_id is None:
             await message.answer(
@@ -45,7 +45,7 @@ async def handle_report_scammer_id(message: types.Message, state: FSMContext):
             )
             return
 
-    _, db_username, *_ = await get_user_type(target_id)
+    _, db_username, *_ = await db.get_user_type(target_id)
 
     await state.update_data(target_id=target_id, db_username=db_username)
     await state.set_state(ReportScammer.waiting_for_username)
@@ -200,8 +200,8 @@ async def handle_report_add_scammer(callback: CallbackQuery):
 
     # Создаём запись в users, если пользователя там нет,
     # иначе добавление в скаммеры упадёт из-за внешнего ключа
-    await ensure_user_exists(target_id, username=username)
-    await add_user_scammer(target_id, reason, proofs)
+    await db.ensure_user_exists(target_id, username=username)
+    await db.add_user_scammer(target_id, reason, proofs)
 
     status_text = "\n\n✅ <b>Пользователь занесён в базу скаммеров</b> ❌"
 

@@ -10,7 +10,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 
 from handlers import commands_router, reply_keyboard_id_router, menu_router, shopping_router, admin_router, report_scammer_router
-import database as db
+from database import db
 
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(bot=bot, storage=MemoryStorage())
@@ -26,7 +26,7 @@ dp.include_routers(
 
 
 async def on_startup(bot: Bot):
-    await db.init_db()
+    await db.initialize()
 
     await bot.set_webhook(
         f"{WEBHOOK_URL}{WEBHOOK_PATH}",
@@ -35,8 +35,13 @@ async def on_startup(bot: Bot):
     )
 
 
+async def on_shutdown(bot: Bot):
+    await db.close()
+
+
 async def main():
     dp.startup.register(on_startup)
+    dp.shutdown.register(on_shutdown)
 
     app = web.Application()
 
